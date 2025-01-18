@@ -21,9 +21,9 @@ export const ApiToken: React.FC<ApiTokenProps> = (props) => {
     }
   };
 
-  const handleAdd = async () => { // 移除参数
+  const handleAdd = async () => { // 移除 record 参数
     try {
-      await fetchAddApiToken();
+      await fetchAddApiToken(); // fetchAddApiToken 不需要参数
       message.success("添加成功!");
     } catch (err) {
       message.warning("添加失败!");
@@ -33,7 +33,7 @@ export const ApiToken: React.FC<ApiTokenProps> = (props) => {
   const handleCreate = useCallback(
     async (record: any) => {
       try {
-        await fetchAddApiToken(record);
+        await fetchAddApiToken();
         message.success("添加成功!");
       } catch (err) {
         message.warning("添加失败!");

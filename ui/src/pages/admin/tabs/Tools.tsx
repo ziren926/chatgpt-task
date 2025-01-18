@@ -1,3 +1,4 @@
+// src/pages/admin/tabs/Tools.tsx
 import {
   Button,
   Card,
@@ -35,11 +36,9 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface DataType {
-  id: number;
-  name: string;
+// 类型定义
+interface ToolData extends Tool {
   sort: number;
-  [key: string]: any;
 }
 
 interface RowContextProps {
@@ -47,9 +46,14 @@ interface RowContextProps {
   listeners?: SyntheticListenerMap;
 }
 
+interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  'data-row-key': React.Key;
+}
 
+// Context
 const RowContext = React.createContext<RowContextProps>({});
 
+// 拖动句柄组件
 const DragHandle: React.FC = () => {
   const { setActivatorNodeRef, listeners } = useContext(RowContext);
   return (
@@ -64,10 +68,7 @@ const DragHandle: React.FC = () => {
   );
 };
 
-interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
-  'data-row-key': React.Key;
-}
-
+// 可拖动的行组件
 const Row = ({ children, ...props }: RowProps) => {
   const {
     attributes,
@@ -102,8 +103,9 @@ const Row = ({ children, ...props }: RowProps) => {
   );
 };
 
-export interface ToolsProps { }
-export const Tools: React.FC<ToolsProps> = (props) => {
+// 主组件
+export const Tools: React.FC = () => {
+  // State
   const { store, loading, reload } = useData();
   const [showEdit, setShowEdit] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
@@ -112,144 +114,142 @@ export const Tools: React.FC<ToolsProps> = (props) => {
   const [searchString, setSearchString] = useState("");
   const [catelogName, setCatelogName] = useState("");
   const [updateForm] = Form.useForm();
-  const [selectedRows, setSelectRows] = useState<any>([]);
-  const [dataSource, setDataSource] = useState<DataType[]>([]);
+  const [selectedRows, setSelectRows] = useState<ToolData[]>([]);
+  const [dataSource, setDataSource] = useState<ToolData[]>([]);
 
+  // Handlers
   const handleDelete = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       try {
         await fetchDeleteTool(id);
         message.success("删除成功!");
+        reload();
       } catch (err) {
         message.warning("删除失败!");
-      } finally {
-        reload();
       }
     },
     [reload]
   );
+
   const handleUpdate = useCallback(
-    async (record: any) => {
+    async (id: string, record: Partial<Tool>) => {
       setRequestLoading(true);
       try {
-        await fetchUpdateTool(record);
+        await fetchUpdateTool(id, record);
         message.success("更新成功! Logo 将在 3 秒后刷新并加载！", 3);
-        setTimeout(() => {
-          reload();
-        }, 3000);
+        setTimeout(reload, 3000);
       } catch (err) {
         message.warning("更新失败!");
       } finally {
         setRequestLoading(false);
         setShowEdit(false);
-        reload();
       }
     },
-    [reload, setShowEdit, setRequestLoading]
+    [reload]
   );
+
   const handleCreate = useCallback(
-    async (record: any) => {
+    async (record: Omit<Tool, 'id'>) => {
       setRequestLoading(true);
       try {
         await fetchAddTool(record);
         message.success("添加成功! Logo 将在 3 秒后刷新并加载！", 3);
-        setTimeout(() => {
-          reload();
-        }, 3000);
+        setTimeout(reload, 3000);
       } catch (err) {
         message.warning("添加失败!");
       } finally {
         setRequestLoading(false);
         setShowAddModel(false);
-        reload();
-      }
-    },
-    [reload, setShowAddModel, setRequestLoading]
-  );
-  const handleImport = useCallback(
-    async (data: any) => {
-      try {
-        await fetchImportTools(data);
-        message.success("导入成功!");
-      } catch (err) {
-        message.warning("导入失败!");
-      } finally {
-        reload();
       }
     },
     [reload]
   );
+
+  const handleImport = useCallback(
+    async (data: Tool[]) => {
+      try {
+        await fetchImportTools(data);
+        message.success("导入成功!");
+        reload();
+      } catch (err) {
+        message.warning("导入失败!");
+      }
+    },
+    [reload]
+  );
+
   const handleBulkDelete = useCallback(async () => {
     try {
-      for (const each of selectedRows) {
-        try {
-          await fetchDeleteTool(each.id);
-        } catch (err) { }
-      }
+      await Promise.all(
+        selectedRows.map(row => fetchDeleteTool(row.id))
+      );
       message.success("删除成功!");
-    } catch (err) {
-      message.success("删除失败!");
-    } finally {
       reload();
+    } catch (err) {
+      message.error("删除失败!");
     }
-  }, [reload, selectedRows]);
+  }, [selectedRows, reload]);
+
   const handleBulkResetLogo = useCallback(async () => {
     try {
-      for (const each of selectedRows) {
-        try {
-          await fetchUpdateTool({ ...each, logo: "" });
-        } catch (err) { }
-      }
+      await Promise.all(
+        selectedRows.map(row =>
+          fetchUpdateTool(row.id, { ...row, logo: "" })
+        )
+      );
       message.success("重置成功!");
-    } catch (err) {
-      message.success("重置失败!");
-    } finally {
       reload();
+    } catch (err) {
+      message.error("重置失败!");
     }
-  }, [reload, selectedRows]);
+  }, [selectedRows, reload]);
+
   const handleBulkCacheLogo = useCallback(async () => {
     try {
-      for (const each of selectedRows) {
-        try {
-          await fetchUpdateTool(each);
-        } catch (err) { }
-      }
+      await Promise.all(
+        selectedRows.map(row =>
+          fetchUpdateTool(row.id, row)
+        )
+      );
       message.success("重置成功!");
-    } catch (err) {
-      message.success("重置失败!");
-    } finally {
       reload();
+    } catch (err) {
+      message.error("重置失败!");
     }
-  }, [reload, selectedRows]);
-  const handleExport = useCallback(async () => {
-    const data = await fetchExportTools();
-    const jsr = JSON.stringify(data);
-    const blob = new Blob([jsr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tools.json";
-    document.documentElement.appendChild(a);
-    a.click();
-    document.documentElement.removeChild(a);
-    message.success("导出成功！");
-    reload();
-  }, [reload]);
+  }, [selectedRows, reload]);
 
+  const handleExport = useCallback(async () => {
+    try {
+      const data = await fetchExportTools();
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tools.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      message.success("导出成功！");
+    } catch (err) {
+      message.error("导出失败！");
+    }
+  }, []);
+
+  // Drag and Drop handler
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (active.id !== over?.id) {
       setDataSource((previous) => {
-        const activeIndex = previous.findIndex((i) => i.id.toString() === active.id);
-        const overIndex = previous.findIndex((i) => i.id.toString() === over?.id);
+        const activeIndex = previous.findIndex((i) => i.id === active.id);
+        const overIndex = previous.findIndex((i) => i.id === over?.id);
 
-        // 计算新的排序值
         const newData = arrayMove(previous, activeIndex, overIndex);
         const updates = newData.map((item, index) => ({
           id: item.id,
           sort: index + 1,
         }));
 
-        // 调用后端接口更新排序
         fetchUpdateToolsSort(updates).then(() => {
           message.success('排序更新成功');
           reload();
@@ -262,28 +262,121 @@ export const Tools: React.FC<ToolsProps> = (props) => {
     }
   };
 
-  // 在 useEffect 中初始化 dataSource
+  // Effects
   useEffect(() => {
     if (store?.tools) {
       const filteredData = store.tools
-        .filter((item: any) => {
-          let show = false;
-          if (searchString === "") {
-            show = true;
-          } else {
-            show = mutiSearch(item.name, searchString) || mutiSearch(item.desc, searchString);
-          }
-          if (!catelogName || catelogName === "") {
-            show = show && true;
-          } else {
-            show = show && mutiSearch(item.catelog, catelogName);
-          }
-          return show;
+        .filter((item: Tool) => {
+          const nameMatch = searchString === "" ||
+            mutiSearch(item.name, searchString) ||
+            mutiSearch(item.desc, searchString);
+
+          const catelogMatch = !catelogName ||
+            mutiSearch(item.catelog, catelogName);
+
+          return nameMatch && catelogMatch;
         })
-        .sort((a: DataType, b: DataType) => a.sort - b.sort);
+        .map(item => ({
+          ...item,
+          sort: item.sort || 0
+        }))
+        .sort((a, b) => a.sort - b.sort);
+
       setDataSource(filteredData);
     }
   }, [store?.tools, searchString, catelogName]);
+
+  // Columns configuration
+  const columns = [
+    {
+      key: "sort",
+      title: "排序",
+      align: "center" as const,
+      width: 50,
+      render: () => <DragHandle />
+    },
+    {
+      title: "ID",
+      dataIndex: "id",
+      width: 40
+    },
+    {
+      title: "名称",
+      dataIndex: "name",
+      width: 120,
+      render: (_: any, record: ToolData) => (
+        <div style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center"
+        }}>
+          <img
+            src={`/api/img?url=${record.logo}`}
+            width={32}
+            height={32}
+            alt={`${record.name} 的图标`}
+          />
+          <span style={{ marginLeft: 8 }}>{record.name}</span>
+        </div>
+      )
+    },
+    {
+      title: "分类",
+      dataIndex: "catelog",
+      width: 60,
+      filters: getFilter(store?.catelogs || []),
+      onFilter: (value: string, record: ToolData) => record.catelog === value
+    },
+    {
+      title: "网址",
+      dataIndex: "url",
+      width: 150,
+      render: (url: string) => (
+        <div style={{
+          wordBreak: 'break-all',
+          whiteSpace: 'normal'
+        }}>
+          {url}
+        </div>
+      )
+    },
+    {
+      title: (
+        <span>隐藏
+          <Tooltip title="开启后只有登录后才会展示该工具">
+            <QuestionCircleOutlined style={{ marginLeft: '5px' }} />
+          </Tooltip>
+        </span>
+      ),
+      dataIndex: "hide",
+      width: 50,
+      render: (val: boolean) => val ? "是" : "否"
+    },
+    {
+      title: "操作",
+      width: 40,
+      key: "action",
+      render: (_: any, record: ToolData) => (
+        <Space>
+          <Button
+            type="link"
+            onClick={() => {
+              updateForm.setFieldsValue(record);
+              setShowEdit(true);
+            }}
+          >
+            修改
+          </Button>
+          <Popconfirm
+            title={`确定要删除 ${record.name} 吗？`}
+            onConfirm={() => handleDelete(record.id)}
+          >
+            <Button type="link">删除</Button>
+          </Popconfirm>
+        </Space>
+      )
+    }
+  ];
 
   return (
     <Card
