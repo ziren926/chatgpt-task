@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet";
 import "./index.css";
+import NavBar from "../NavBar";
+
 
 // Components
 import CardV2 from "../CardV2";
@@ -191,6 +193,21 @@ const Content: React.FC<ContentProps> = () => {
     };
   }, [searchString]);
 
+  const navItems = [
+      {
+        title: "工具",
+        url: "/",
+      },
+      {
+        title: "文档",
+        url: "/docs",
+      },
+      {
+        title: "GitHub",
+        url: "https://github.com/ziren926/chatgpt-task",
+      }
+    ];
+
   return (
     <>
       <Helmet>
@@ -198,7 +215,7 @@ const Content: React.FC<ContentProps> = () => {
         <link rel="icon" href={data?.setting?.favicon ?? "favicon.ico"} />
         <title>{data?.setting?.title ?? "Van Nav"}</title>
       </Helmet>
-
+      <NavBar items={navItems} activeIndex={0} />
       <div className="topbar">
         <div className="content">
           <SearchBar

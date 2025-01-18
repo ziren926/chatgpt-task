@@ -1,4 +1,3 @@
-// ui/src/components/NavBar/index.tsx
 import React from 'react';
 import './style.css';
 
@@ -22,8 +21,6 @@ const NavBar: React.FC<NavBarProps> = ({ items, activeIndex = 0 }) => {
             key={index}
             href={item.url}
             className={`nav-item ${index === activeIndex ? 'active' : ''}`}
-            target="_blank"
-            rel="noopener noreferrer"
           >
             {item.icon && <img src={item.icon} alt="" className="nav-icon" />}
             <span>{item.title}</span>
