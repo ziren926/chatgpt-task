@@ -1,197 +1,211 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Helmet } from "react-helmet";
 import "./index.css";
+
+// Components
 import CardV2 from "../CardV2";
 import SearchBar from "../SearchBar";
 import { Loading } from "../Loading";
-import { Helmet } from "react-helmet";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FetchList } from "../../utils/api";
 import TagSelector from "../TagSelector";
-import pinyin from "pinyin-match";
 import GithubLink from "../GithubLink";
 import DarkSwitch from "../DarkSwitch";
-//import { isLogin } from "../../utils/check";
+
+// Utils
+import { FetchList } from "../../utils/api";
+import pinyin from "pinyin-match";
 import { generateSearchEngineCard } from "../../utils/serachEngine";
 import { toggleJumpTarget } from "../../utils/setting";
 
-const mutiSearch = (s, t) => {
-  const source = (s as string).toLowerCase();
-  const target = t.toLowerCase();
-  const rawInclude = source.includes(target);
-  const pinYinInlcude = Boolean(pinyin.match(source, target));
-  return rawInclude || pinYinInlcude;
+// Types
+interface ContentProps {
+  // Add props interface if needed
+}
+
+// Helper functions
+const mutiSearch = (source: string, target: string): boolean => {
+  const normalizedSource = source.toLowerCase();
+  const normalizedTarget = target.toLowerCase();
+
+  return (
+    normalizedSource.includes(normalizedTarget) ||
+    Boolean(pinyin.match(normalizedSource, normalizedTarget))
+  );
 };
 
-const Content = (props: any) => {
+const Content: React.FC<ContentProps> = () => {
+  // State
   const [data, setData] = useState<any>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [currTag, setCurrTag] = useState("全部工具");
   const [searchString, setSearchString] = useState("");
   const [val, setVal] = useState("");
 
-  const filteredDataRef = useRef<any>([]);
+  // Refs
+  const filteredDataRef = useRef<any[]>([]);
 
+  // Memoized values
   const showGithub = useMemo(() => {
-    const hide = data?.setting?.hideGithub === true
-    return !hide;
-  }, [data])
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const r = await FetchList();
-      setData(r);
-      const tagInLocalStorage = window.localStorage.getItem("tag");
-      if (tagInLocalStorage && tagInLocalStorage !== "") {
-        if (r?.catelogs && r?.catelogs.includes(tagInLocalStorage)) {
-          setCurrTag(tagInLocalStorage);
-        }
-      }
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [setData, setLoading, setCurrTag]);
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    return !data?.setting?.hideGithub;
+  }, [data]);
 
+  // Event handlers
   const handleSetCurrTag = (tag: string) => {
     setCurrTag(tag);
-    // 管理后台不记录了
     if (tag !== "管理后台") {
       window.localStorage.setItem("tag", tag);
     }
     resetSearch(true);
   };
 
-  const resetSearch = (notSetTag?: boolean) => {
-    setVal("");
-    setSearchString("");
-    const tagInLocalStorage = window.localStorage.getItem("tag");
-    if (!notSetTag && tagInLocalStorage && tagInLocalStorage !== "" && tagInLocalStorage !== "管理后台") {
-      setCurrTag(tagInLocalStorage);
-    }
-  };
-
   const handleSetSearch = (val: string) => {
-    if (val !== "" && val) {
+    if (val.trim()) {
       setCurrTag("全部工具");
       setSearchString(val.trim());
     } else {
       resetSearch();
     }
-  }
-
-
-
-  const filteredData = useMemo(() => {
-    if (data.tools) {
-      const localResult = data.tools
-        .filter((item: any) => {
-          if (currTag === "全部工具") {
-            return true;
-          }
-          return item.catelog === currTag;
-        })
-        .filter((item: any) => {
-          if (searchString === "") {
-            return true;
-          }
-          return (
-            mutiSearch(item.name, searchString) ||
-            mutiSearch(item.desc, searchString) ||
-            mutiSearch(item.url, searchString)
-          );
-        });
-      return [...localResult, ...generateSearchEngineCard(searchString)]
-    } else {
-      return [...generateSearchEngineCard(searchString)];
-    }
-  }, [data, currTag, searchString]);
-
-  useEffect(() => {
-    filteredDataRef.current = filteredData
-  }, [filteredData])
-
-  useEffect(() => {
-    if (searchString.trim() === "") {
-      document.removeEventListener("keydown", onKeyEnter);
-    } else {
-      document.addEventListener("keydown", onKeyEnter);
-    }
-    return () => {
-      document.removeEventListener("keydown", onKeyEnter);
-    }
-    // eslint-disable-next-line
-  }, [searchString])
-
-  const renderCardsV2 = useCallback(() => {
-    return filteredData.map((item, index) => {
-      return (
-        <CardV2
-          title={item.name}
-          url={item.url}
-          des={item.desc}
-          logo={item.logo}
-          key={item.id}
-          catelog={item.catelog}
-          index={index}
-          isSearching={searchString.trim() !== ""}
-          onClick={() => {
-            resetSearch();
-            if (item.url === "toggleJumpTarget") {
-              toggleJumpTarget();
-              loadData();
-            }
-          }}
-        />
-      );
-    });
-    // eslint-disable-next-line
-  }, [filteredData, searchString]);
+  };
 
   const onKeyEnter = (ev: KeyboardEvent) => {
     const cards = filteredDataRef.current;
-    // 使用 keyCode 防止与中文输入冲突
-    if (ev.keyCode === 13) {
-      if (cards && cards.length) {
-        window.open(cards[0]?.url, "_blank");
-        resetSearch();
-      }
-    }
-    // 如果按了数字键 + ctrl/meta，打开对应的卡片
-    if (ev.ctrlKey || ev.metaKey) {
-      const num = Number(ev.key);
-      if (isNaN(num)) return;
-      ev.preventDefault()
-      const index = Number(ev.key) - 1;
-      if (index >= 0 && index < cards.length) {
-        window.open(cards[index]?.url, "_blank");
-        resetSearch();
-      }
+
+    // Enter key
+    if (ev.keyCode === 13 && cards?.length) {
+      window.open(cards[0]?.url, "_blank");
+      resetSearch();
     }
 
+    // Ctrl/Meta + Number
+    if ((ev.ctrlKey || ev.metaKey)) {
+      const num = Number(ev.key);
+      if (!isNaN(num)) {
+        ev.preventDefault();
+        const index = num - 1;
+        if (index >= 0 && index < cards.length) {
+          window.open(cards[index]?.url, "_blank");
+          resetSearch();
+        }
+      }
+    }
   };
+
+  // Helper functions
+  const resetSearch = (notSetTag?: boolean) => {
+    setVal("");
+    setSearchString("");
+    const tagInLocalStorage = window.localStorage.getItem("tag");
+
+    if (!notSetTag &&
+        tagInLocalStorage &&
+        tagInLocalStorage !== "" &&
+        tagInLocalStorage !== "管理后台") {
+      setCurrTag(tagInLocalStorage);
+    }
+  };
+
+  // Data loading
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await FetchList();
+      setData(response);
+
+      const tagInLocalStorage = window.localStorage.getItem("tag");
+      if (tagInLocalStorage &&
+          response?.catelogs?.includes(tagInLocalStorage)) {
+        setCurrTag(tagInLocalStorage);
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Filtered data
+  const filteredData = useMemo(() => {
+    if (!data.tools) {
+      return generateSearchEngineCard(searchString);
+    }
+
+    const localResult = data.tools
+      .filter((item: any) =>
+        currTag === "全部工具" || item.catelog === currTag
+      )
+      .filter((item: any) => {
+        if (!searchString) return true;
+
+        return (
+          mutiSearch(item.name, searchString) ||
+          mutiSearch(item.desc, searchString) ||
+          mutiSearch(item.url, searchString)
+        );
+      });
+
+    return [...localResult, ...generateSearchEngineCard(searchString)];
+  }, [data, currTag, searchString]);
+
+  // Card rendering
+  const renderCards = useCallback(() => {
+    return filteredData.map((item, index) => (
+      <CardV2
+        key={item.id}
+        title={item.name}
+        url={item.url}
+        des={item.desc}
+        logo={item.logo}
+        catelog={item.catelog}
+        index={index}
+        isSearching={searchString.trim() !== ""}
+        onClick={() => {
+          resetSearch();
+          if (item.url === "toggleJumpTarget") {
+            toggleJumpTarget();
+            loadData();
+          }
+        }}
+      />
+    ));
+  }, [filteredData, searchString, loadData]);
+
+  // Effects
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    filteredDataRef.current = filteredData;
+  }, [filteredData]);
+
+  useEffect(() => {
+    const shouldAddListener = searchString.trim() !== "";
+
+    if (shouldAddListener) {
+      document.addEventListener("keydown", onKeyEnter);
+    } else {
+      document.removeEventListener("keydown", onKeyEnter);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", onKeyEnter);
+    };
+  }, [searchString]);
 
   return (
     <>
       <Helmet>
         <meta charSet="utf-8" />
-        <link
-          rel="icon"
-          href={
-            data?.setting?.favicon ?? "favicon.ico"
-          }
-        />
+        <link rel="icon" href={data?.setting?.favicon ?? "favicon.ico"} />
         <title>{data?.setting?.title ?? "Van Nav"}</title>
       </Helmet>
+
       <div className="topbar">
         <div className="content">
           <SearchBar
             searchString={val}
-            setSearchText={(t) => {
-              setVal(t);
-              handleSetSearch(t);
+            setSearchText={(text) => {
+              setVal(text);
+              handleSetSearch(text);
             }}
           />
           <TagSelector
@@ -201,14 +215,23 @@ const Content = (props: any) => {
           />
         </div>
       </div>
+
       <div className="content-wraper">
         <div className="content cards">
-          {loading ? <Loading></Loading> : renderCardsV2()}
+          {loading ? <Loading /> : renderCards()}
         </div>
       </div>
+
       <div className="record-wraper">
-        <a href="https://beian.miit.gov.cn" target="_blank" rel="noreferrer">{data?.setting?.govRecord ?? ""}</a>
+        <a
+          href="https://beian.miit.gov.cn"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {data?.setting?.govRecord ?? ""}
+        </a>
       </div>
+
       {showGithub && <GithubLink />}
       <DarkSwitch showGithub={showGithub} />
     </>
