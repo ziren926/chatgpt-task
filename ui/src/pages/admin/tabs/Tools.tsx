@@ -437,6 +437,7 @@ export const Tools: React.FC<ToolsProps> = (props) => {
                           src={`/api/img?url=${record.logo}`}
                           width={32}
                           height={32}
+                          alt={`${record.name} 的图标`}
                         ></img>
                       <span style={{ marginLeft: 8 }}>{record.name}</span>
                     </div>

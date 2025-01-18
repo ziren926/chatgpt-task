@@ -9,7 +9,7 @@ import TagSelector from "../TagSelector";
 import pinyin from "pinyin-match";
 import GithubLink from "../GithubLink";
 import DarkSwitch from "../DarkSwitch";
-import { isLogin } from "../../utils/check";
+//import { isLogin } from "../../utils/check";
 import { generateSearchEngineCard } from "../../utils/serachEngine";
 import { toggleJumpTarget } from "../../utils/setting";
 

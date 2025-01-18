@@ -10,7 +10,7 @@ export const Setting: React.FC<SettingProps> = (props) => {
   useEffect(() => {
     userForm.setFieldsValue(store?.user ?? {})
     settingForm.setFieldsValue(store?.setting ?? {})
-  }, [store])
+  }, [userForm,settingForm])
   const handleUpdateUser = useCallback(
     async (values: any) => {
       try {

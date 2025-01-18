@@ -13,5 +13,5 @@ export function useOnce(callback: () => void | (() => void), deps?: React.Depend
       hasRun.current = true;
       return callback();
     }
-  }, deps);
+  }, [callback,deps]);
 }
