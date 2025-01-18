@@ -22,6 +22,21 @@ import {
 } from "../../../utils/api";
 import { useData } from "../hooks/useData";
 export interface CatelogProps {}
+
+interface Category {
+  id: string;
+  name: string;
+  sort: number;
+  hide: boolean;
+}
+
+interface CategoryUpdateValues {
+  id: string;
+  name: string;
+  sort: number;
+  hide: boolean;
+}
+
 export const Catelog: React.FC<CatelogProps> = (props) => {
   const { store, loading, reload } = useData();
   const [requestLoading, setRequestLoading] = useState(false);
@@ -37,6 +52,18 @@ export const Catelog: React.FC<CatelogProps> = (props) => {
       message.warning("删除分类失败!");
     }
   };
+
+   const handleModalUpdate = () => {
+      updateForm
+        .validateFields()
+        .then((values: CategoryUpdateValues) => {
+          handleUpdate(values);
+        })
+        .catch(info => {
+          console.log('验证失败:', info);
+        });
+    };
+
   const handleCreate = useCallback(
     async (record: any) => {
       try {
@@ -52,20 +79,25 @@ export const Catelog: React.FC<CatelogProps> = (props) => {
     [reload, setShowAddModel]
   );
 
-  const handleUpdate = async (id: string, data: { name: string }) => { // 添加正确的参数
-    setRequestLoading(true);
-    try {
-      await fetchUpdateCateLog(id, data);
-      message.success("更新成功!");
-      setTimeout(() => {
-        reload();
-      }, 1000);
-    } catch (err) {
-      message.warning("更新失败!");
-    } finally {
-      setRequestLoading(false);
-    }
-  };
+  const handleUpdate = useCallback(
+      async (values: CategoryUpdateValues) => {
+        setRequestLoading(true);
+        try {
+          const { id, ...updateData } = values;
+          await fetchUpdateCateLog(id, updateData);
+          message.success("更新成功!");
+          setShowEdit(false);
+          setTimeout(() => {
+            reload();
+          }, 1000);
+        } catch (err) {
+          message.warning("更新失败!");
+        } finally {
+          setRequestLoading(false);
+        }
+      },
+      [reload]
+    );
 
   return (
     <Card
@@ -223,13 +255,63 @@ export const Catelog: React.FC<CatelogProps> = (props) => {
         title={"修改分类"}
         onCancel={() => {
           setShowEdit(false);
+          updateForm.resetFields();
         }}
-        onOk={() => {
-          const values = updateForm?.getFieldsValue();
-          handleUpdate(values);
-        }}
+        onOk={handleModalUpdate}
       >
         <Spin spinning={requestLoading}>
+          <Form
+              form={updateForm}
+              initialValues={{ hide: false }}
+          >
+          <Form.Item
+                        name="id"
+                        hidden
+                      >
+                        <Input />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="name"
+                        label="名称"
+                        rules={[
+                          { required: true, message: "请填写分类名称" },
+                          { max: 50, message: "名称最多50个字符" }
+                        ]}
+                        labelCol={{ span: 4 }}
+                      >
+                        <Input placeholder="请输入分类名称" />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="sort"
+                        label="排序"
+                        rules={[
+                          { required: true, message: "请填写排序值" },
+                          { type: 'number', message: "请输入数字" },
+                          { min: 1, message: "排序值必须大于0" }
+                        ]}
+                        labelCol={{ span: 4 }}
+                      >
+                        <InputNumber
+                          placeholder="请输入排序值"
+                          min={1}
+                          defaultValue={1}
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="hide"
+                        label="隐藏"
+                        valuePropName="checked"
+                        labelCol={{ span: 4 }}
+                      >
+                        <Switch
+                          checkedChildren="开"
+                          unCheckedChildren="关"
+                        />
+                      </Form.Item>
+                    </Form>
           <Form form={updateForm}>
             <Form.Item name="id" label="序号" labelCol={{ span: 4 }}>
               <Input disabled />

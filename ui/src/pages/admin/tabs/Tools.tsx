@@ -27,7 +27,6 @@ import {
   fetchUpdateTool,
   fetchUpdateToolsSort,
 } from "../../../utils/api";
-import { Tool } from '../../../types/api';
 import { useData } from "../hooks/useData";
 import type { DragEndEvent } from '@dnd-kit/core';
 import { DndContext } from '@dnd-kit/core';
@@ -35,6 +34,7 @@ import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Tool, ToolFormValues, ToolUpdateValues, ToolWithSort } from '../../../types/api';
 
 // 类型定义
 interface ToolData extends Tool {
@@ -132,21 +132,22 @@ export const Tools: React.FC = () => {
   );
 
   const handleUpdate = useCallback(
-    async (id: string, record: Partial<Tool>) => {
-      setRequestLoading(true);
-      try {
-        await fetchUpdateTool(id, record);
-        message.success("更新成功! Logo 将在 3 秒后刷新并加载！", 3);
-        setTimeout(reload, 3000);
-      } catch (err) {
-        message.warning("更新失败!");
-      } finally {
-        setRequestLoading(false);
-        setShowEdit(false);
-      }
-    },
-    [reload]
-  );
+      async (values: ToolUpdateValues) => {
+        setRequestLoading(true);
+        try {
+          const { id, ...updateData } = values;
+          await fetchUpdateTool(id, updateData);
+          message.success("更新成功! Logo 将在 3 秒后刷新并加载！", 3);
+          setTimeout(reload, 3000);
+        } catch (err) {
+          message.warning("更新失败!");
+        } finally {
+          setRequestLoading(false);
+          setShowEdit(false);
+        }
+      },
+      [reload]
+    );
 
   const handleCreate = useCallback(
     async (record: Omit<Tool, 'id'>) => {
@@ -250,12 +251,14 @@ export const Tools: React.FC = () => {
           sort: index + 1,
         }));
 
-        fetchUpdateToolsSort(updates).then(() => {
-          message.success('排序更新成功');
-          reload();
-        }).catch(() => {
-          message.error('排序更新失败');
-        });
+        fetchUpdateToolsSort(updates)
+          .then(() => {
+            message.success('排序更新成功');
+            reload();
+          })
+          .catch(() => {
+            message.error('排序更新失败');
+          });
 
         return newData;
       });
@@ -377,6 +380,16 @@ export const Tools: React.FC = () => {
       )
     }
   ];
+
+  const handleModalUpdate = () => {
+      updateForm.validateFields()
+        .then((values: ToolUpdateValues) => {
+          handleUpdate(values);
+        })
+        .catch((info) => {
+          console.log('Validate Failed:', info);
+        });
+    };
 
   return (
     <Card
@@ -721,13 +734,43 @@ export const Tools: React.FC = () => {
         onCancel={() => {
           setShowEdit(false);
         }}
-        onOk={() => {
-          const values = updateForm?.getFieldsValue();
-          handleUpdate(values);
-        }}
+        onOk={handleModalUpdate}
       >
         <Spin spinning={requestLoading}>
-          <Form form={updateForm}>
+          <Form form={updateForm} initialValues={{ hide: false }}>
+            <Form.Item
+                name="id"
+                hidden
+              >
+                <Input />
+              </Form.Item>
+
+              <Form.Item
+                name="name"
+                label="名称"
+                rules={[
+                  { required: true, message: "请填写名称" },
+                  { max: 50, message: "名称最多50个字符" }
+                ]}
+                labelCol={{ span: 4 }}
+              >
+                <Input placeholder="请输入工具名称" />
+              </Form.Item>
+
+              <Form.Item
+                name="url"
+                label="网址"
+                rules={[
+                  { required: true, message: "请填写网址" },
+                  {
+                    pattern: /^(https?:\/\/)/,
+                    message: "网址必须以 http:// 或 https:// 开头"
+                  }
+                ]}
+                labelCol={{ span: 4 }}
+              >
+                <Input placeholder="请输入完整URL" />
+              </Form.Item>
             <Form.Item name="id" label="序号" labelCol={{ span: 4 }}>
               <Input disabled />
             </Form.Item>
@@ -788,5 +831,6 @@ export const Tools: React.FC = () => {
         </Spin>
       </Modal>}
     </Card>
+
   );
 };

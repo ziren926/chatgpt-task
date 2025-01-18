@@ -21,6 +21,18 @@ export interface ApiToken {
   createdAt: string;
 }
 
+export interface ToolWithSort extends Tool {
+  sort: number;
+}
+
+export interface ToolFormValues extends Omit<Tool, 'id'> {
+  sort: number;
+  hide: boolean;
+}
+
+export interface ToolUpdateValues extends ToolFormValues {
+  id: string;
+}
 export interface ApiResponse {
   tools: Tool[];
   catelogs: string[];
