@@ -1,46 +1,102 @@
-import { useMemo } from "react";
+// ui/src/components/CardV2/index.tsx
+import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { Tooltip } from "antd";
 import "./index.css";
-import { getLogoUrl } from "../../utils/check";
-import { getJumpTarget } from "../../utils/setting";
-const Card = ({ title, url, des, logo, catelog, onClick, index, isSearching }) => {
-  const el = useMemo(() => {
-    if (url === "admin") {
-      return <img src={logo} alt={title} />
-    } else {
-        return <img src={getLogoUrl(logo)} alt={title} />
+
+interface CardV2Props {
+  id: string;                   // 添加 id 用于路由
+  title: string;
+  url: string;
+  des: string;
+  logo: string;
+  catelog: string;
+  index: number;
+  isSearching: boolean;
+  onClick?: () => void;
+}
+
+const CardV2: React.FC<CardV2Props> = ({
+  id,
+  title,
+  url,
+  des,
+  logo,
+  catelog,
+  index,
+  isSearching,
+  onClick,
+}) => {
+  const navigate = useNavigate();
+  const [imgError, setImgError] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleImgError = () => {
+    setImgError(true);
+  };
+
+  const handleClick = () => {
+    if (url === "toggleJumpTarget") {
+      if (onClick) onClick();
+      return;
     }
-  }, [logo, title, url])
-  const showNumIndex = index < 10 && isSearching;
+    // 点击时先触发原有的 onClick
+    if (onClick) onClick();
+    // 然后导航到详情页
+    navigate(`/tool/${id}`);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+  };
+
+  const renderLogo = () => {
+    if (imgError) {
+      return (
+        <div className="card-logo-placeholder">
+          {title.slice(0, 2).toUpperCase()}
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={logo}
+        onError={handleImgError}
+        alt={title}
+        className="card-logo"
+      />
+    );
+  };
+
   return (
-    <a
-      href={url === "toggleJumpTarget" ? undefined : url}
-      onClick={() => {
-        onClick();
-      }}
-      target={getJumpTarget() === "blank" ? "_blank" : "_self"}
-      rel="noreferrer"
-      className="card-box"
+    <div
+      className={`card ${isHovering ? "card-hover" : ""}`}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      {showNumIndex && <span className="card-index">{index + 1}</span>}
+      {renderLogo()}
       <div className="card-content">
-        <div className="card-left">
-          {el}
-          {/* {url === "admin" ? (
-            <img src={logo} alt={title} />
-          ) : (
-            <img src={`/api/img?url=${logo}`} alt={title} />
-          )} */}
-        </div>
-        <div className="card-right">
-          <div className="card-right-top">
-            <span className="card-right-title" title={title}>{title}</span>
-            <span className="card-tag" title={catelog}>{catelog}</span>
-          </div>
-          <div className="card-right-bottom" title={des}>{des}</div>
-        </div>
+        <Tooltip title={title}>
+          <h3 className="card-title">
+            {title}
+            {isSearching && (
+              <span className="card-index">#{index + 1}</span>
+            )}
+          </h3>
+        </Tooltip>
+        <Tooltip title={des}>
+          <p className="card-description">{des}</p>
+        </Tooltip>
+        <span className="card-category">{catelog}</span>
       </div>
-    </a>
+    </div>
   );
 };
 
-export default Card;
+export default CardV2;

@@ -29,19 +29,14 @@ export const Catelog: React.FC<CatelogProps> = (props) => {
   const [updateForm] = Form.useForm();
   const [showAddModel, setShowAddModel] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const handleDelete = useCallback(
-    async (id: number) => {
-      try {
-        await fetchDeleteCatelog(id);
-        message.success("删除成分类功!");
-      } catch (err) {
-        message.warning("删除分类失败!");
-      } finally {
-        reload();
-      }
-    },
-    [reload]
-  );
+  const handleDelete = async (id: string) => { // 确保 id 是字符串
+    try {
+      await fetchDeleteCatelog(id);
+      message.success("删除分类成功!");
+    } catch (err) {
+      message.warning("删除分类失败!");
+    }
+  };
   const handleCreate = useCallback(
     async (record: any) => {
       try {
@@ -57,25 +52,21 @@ export const Catelog: React.FC<CatelogProps> = (props) => {
     [reload, setShowAddModel]
   );
 
-  const handleUpdate = useCallback(
-    async (record: any) => {
-      setRequestLoading(true);
-      try {
-        await fetchUpdateCateLog(record);
-        message.success("更新成功! ");
-        setTimeout(() => {
-          reload();
-        }, 3000);
-      } catch (err) {
-        message.warning("更新失败!");
-      } finally {
-        setRequestLoading(false);
-        setShowEdit(false);
+  const handleUpdate = async (id: string, data: { name: string }) => { // 添加正确的参数
+    setRequestLoading(true);
+    try {
+      await fetchUpdateCateLog(id, data);
+      message.success("更新成功!");
+      setTimeout(() => {
         reload();
-      }
-    },
-    [reload, setShowEdit, setRequestLoading]
-  );
+      }, 1000);
+    } catch (err) {
+      message.warning("更新失败!");
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
   return (
     <Card
       title={`当前共 ${store?.catelogs?.length ?? 0} 条`}

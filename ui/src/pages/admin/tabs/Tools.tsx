@@ -26,6 +26,7 @@ import {
   fetchUpdateTool,
   fetchUpdateToolsSort,
 } from "../../../utils/api";
+import { Tool } from '../../../types/api';
 import { useData } from "../hooks/useData";
 import type { DragEndEvent } from '@dnd-kit/core';
 import { DndContext } from '@dnd-kit/core';
@@ -45,6 +46,7 @@ interface RowContextProps {
   setActivatorNodeRef?: (element: HTMLElement | null) => void;
   listeners?: SyntheticListenerMap;
 }
+
 
 const RowContext = React.createContext<RowContextProps>({});
 

@@ -1,0 +1,71 @@
+/* ui/src/components/ToolDetail/style.css */
+.tool-detail {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.back-button {
+  margin-bottom: 20px;
+}
+
+.tool-detail-card {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.tool-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.tool-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.tool-info h1 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+}
+
+.tool-category {
+  display: inline-block;
+  padding: 2px 12px;
+  background-color: var(--bg-light);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.tool-description {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.tool-content {
+  margin-bottom: 24px;
+  line-height: 1.8;
+}
+
+.tool-detail-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+}
+
+.tool-detail-error {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+[data-theme='dark'] .tool-detail-card {
+  background-color: #1f1f1f;
+}

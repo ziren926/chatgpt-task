@@ -10,19 +10,26 @@ export const ApiToken: React.FC<ApiTokenProps> = (props) => {
   const [addForm] = Form.useForm();
   const [showAddModel, setShowAddModel] = useState(false);
   const { store, loading, reload } = useData();
-  const handleDelete = useCallback(
-    async (id: number) => {
-      try {
-        await fetchDeleteApiToken(id);
-        message.success("删除成功!");
-      } catch (err) {
-        message.warning("删除失败!");
-      } finally {
-        reload();
-      }
-    },
-    [reload]
-  );
+
+
+  const handleDelete = async (id: string) => { // 修改参数类型为 string
+    try {
+      await fetchDeleteApiToken(id);
+      message.success("删除成功!");
+    } catch (err) {
+      message.warning("删除失败!");
+    }
+  };
+
+  const handleAdd = async () => { // 移除参数
+    try {
+      await fetchAddApiToken();
+      message.success("添加成功!");
+    } catch (err) {
+      message.warning("添加失败!");
+    }
+  };
+
   const handleCreate = useCallback(
     async (record: any) => {
       try {

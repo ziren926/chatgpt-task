@@ -9,6 +9,8 @@ import './App.css';
 const Home = React.lazy(() => import('./pages/Home'));
 const AdminPage = React.lazy(() => import('./pages/admin').then(module => ({ default: module.AdminPage })));
 const Login = React.lazy(() => import('./pages/Login'));
+// 修改工具详情页的懒加载导入方式
+const ToolDetail = React.lazy(() => import('./components/ToolDetail'));
 
 // 懒加载管理后台的子页面
 const Tools = React.lazy(() => import('./pages/admin/tabs/Tools').then(module => ({ default: module.Tools })));
@@ -16,7 +18,7 @@ const Catelog = React.lazy(() => import('./pages/admin/tabs/Catelog').then(modul
 const ApiToken = React.lazy(() => import('./pages/admin/tabs/ApiToken').then(module => ({ default: module.ApiToken })));
 const Setting = React.lazy(() => import('./pages/admin/tabs/Setting').then(module => ({ default: module.Setting })));
 
-// 加载中的占位组件
+// LoadingFallback 组件保持不变
 const LoadingFallback = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -66,6 +68,7 @@ function App() {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/tool/:id" element={<ToolDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminPage />}>
               <Route index element={<Tools />} />
@@ -82,5 +85,3 @@ function App() {
 }
 
 export default App;
-
-

@@ -1,22 +1,19 @@
+// src/components/Content/index.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet";
 import "./index.css";
 import NavBar from "../NavBar";
-
-
-// Components
 import CardV2 from "../CardV2";
 import SearchBar from "../SearchBar";
 import { Loading } from "../Loading";
 import TagSelector from "../TagSelector";
 import GithubLink from "../GithubLink";
 import DarkSwitch from "../DarkSwitch";
-
-// Utils
 import { FetchList } from "../../utils/api";
 import pinyin from "pinyin-match";
 import { generateSearchEngineCard } from "../../utils/serachEngine";
 import { toggleJumpTarget } from "../../utils/setting";
+import { ApiResponse, Tool } from "../../types/api";
 
 // Types
 interface ContentProps {
@@ -36,14 +33,17 @@ const mutiSearch = (source: string, target: string): boolean => {
 
 const Content: React.FC<ContentProps> = () => {
   // State
-  const [data, setData] = useState<any>({});
+  const [data, setData] = useState<ApiResponse>({
+    tools: [],
+    catelogs: ["全部工具"]
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [currTag, setCurrTag] = useState("全部工具");
   const [searchString, setSearchString] = useState("");
   const [val, setVal] = useState("");
 
   // Refs
-  const filteredDataRef = useRef<any[]>([]);
+  const filteredDataRef = useRef<Tool[]>([]);
 
   // Memoized values
   const showGithub = useMemo(() => {
@@ -127,14 +127,18 @@ const Content: React.FC<ContentProps> = () => {
   // Filtered data
   const filteredData = useMemo(() => {
     if (!data.tools) {
-      return generateSearchEngineCard(searchString);
+      const searchResults = generateSearchEngineCard(searchString);
+      return searchResults.map(item => ({
+        ...item,
+        catelog: '搜索'
+      }));
     }
 
     const localResult = data.tools
-      .filter((item: any) =>
+      .filter((item: Tool) =>
         currTag === "全部工具" || item.catelog === currTag
       )
-      .filter((item: any) => {
+      .filter((item: Tool) => {
         if (!searchString) return true;
 
         return (
@@ -144,14 +148,20 @@ const Content: React.FC<ContentProps> = () => {
         );
       });
 
-    return [...localResult, ...generateSearchEngineCard(searchString)];
+    const searchResults = generateSearchEngineCard(searchString).map(item => ({
+      ...item,
+      catelog: '搜索'
+    }));
+
+    return [...localResult, ...searchResults];
   }, [data, currTag, searchString]);
 
   // Card rendering
   const renderCards = useCallback(() => {
-    return filteredData.map((item, index) => (
+    return filteredData.map((item: Tool, index: number) => (
       <CardV2
         key={item.id}
+        id={item.id}
         title={item.name}
         url={item.url}
         des={item.desc}
@@ -194,19 +204,19 @@ const Content: React.FC<ContentProps> = () => {
   }, [searchString]);
 
   const navItems = [
-      {
-        title: "工具",
-        url: "/",
-      },
-      {
-        title: "文档",
-        url: "/docs",
-      },
-      {
-        title: "GitHub",
-        url: "https://github.com/ziren926/chatgpt-task",
-      }
-    ];
+    {
+      title: "工具",
+      url: "/",
+    },
+    {
+      title: "文档",
+      url: "/docs",
+    },
+    {
+      title: "GitHub",
+      url: "https://github.com/ziren926/chatgpt-task",
+    }
+  ];
 
   return (
     <>
