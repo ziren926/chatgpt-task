@@ -63,6 +63,8 @@ func main() {
     database.InitDB()
     gin.SetMode(gin.ReleaseMode)
     router := gin.Default()
+    // 配置 CORS
+    router.Use(cors.Default())
     router.Use(gzip.Gzip(gzip.DefaultCompression))
     // 嵌入文件夹
     router.GET("/manifest.json", handler.ManifastHanlder)
