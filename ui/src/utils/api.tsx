@@ -79,16 +79,19 @@ const handleRequest = async (url: string, options: RequestInit = {}) => {
       ...(token && { 'Authorization': `Bearer ${token}` })
     });
 
+    // 移除 credentials: 'include'，因为我们使用 Bearer token
     const response = await fetch(`${BASE_URL}${url}`, {
       ...options,
-      headers: headers,
-      credentials: 'include' // 添加這行以支持跨域請求的認證信息
+      headers: headers
     });
 
     if (!response.ok) {
       if (response.status === 401) {
-        localStorage.removeItem(TOKEN_KEY);
-        window.location.href = '/login';
+        // 只对非登录请求清除 token
+        if (!url.includes('/api/login')) {
+          localStorage.removeItem(TOKEN_KEY);
+          window.location.href = '/login';
+        }
         throw new Error('未登錄或登錄已過期');
       }
       throw new Error(`請求失敗: ${response.statusText}`);
@@ -127,9 +130,16 @@ export const fetchAdminData = async () => {
   }
 
   try {
+    // 先验证token
+    const isValid = await checkLogin();
+    if (!isValid) {
+      throw new Error('Token无效');
+    }
+
     const data = await handleRequest('/api/admin/all');
     return data;
   } catch (error) {
+    console.error('Failed to fetch admin data:', error);
     if (error.message.includes('401')) {
       logout();
     }
@@ -250,7 +260,16 @@ export const login = async (username: string, password: string): Promise<LoginRe
     const data = await response.json();
 
     if (data.success && data.data?.token) {
+      // 先清除旧token，再设置新token
+      localStorage.removeItem(TOKEN_KEY);
       localStorage.setItem(TOKEN_KEY, data.data.token);
+
+      // 验证token是否正确存储
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      if (!storedToken) {
+        throw new Error('Token存储失败');
+      }
+
       return data;
     }
 
@@ -276,7 +295,9 @@ export const checkLogin = async () => {
     return true;
   } catch (error) {
     console.error('Token validation failed:', error);
-    logout();
+    if (error.message.includes('401')) {
+      logout();
+    }
     return false;
   }
 };
