@@ -72,10 +72,13 @@ func main() {
 		// 获取数据的路由
 		api.GET("/", handler.GetAllHandler)
 		// 获取用户信息
+		api.GET("/tools", handler.GetAllHandler)
 
 		api.POST("/login", handler.LoginHandler)
 		api.GET("/logout", handler.LogoutHandler)
 		api.GET("/img", handler.GetLogoImgHandler)
+
+
 		// 管理员用的
 		admin := api.Group("/admin")
 		admin.Use(middleware.JWTMiddleware())
@@ -89,6 +92,7 @@ func main() {
 			admin.POST("/importTools", handler.ImportToolsHandler)
 
 			admin.PUT("/user", handler.UpdateUserHandler)
+			admin.GET("/all", handler.GetAdminAllDataHandler)
 
 			admin.PUT("/setting", handler.UpdateSettingHandler)
 
@@ -100,6 +104,8 @@ func main() {
 			admin.POST("/catelog", handler.AddCatelogHandler)
 			admin.DELETE("/catelog/:id", handler.DeleteCatelogHandler)
 			admin.PUT("/catelog/:id", handler.UpdateCatelogHandler)
+			admin.POST("/categories", handler.AddCatelogHandler)
+
 		}
 	}
 	logger.LogInfo("应用启动成功，网址: http://localhost:%s", *port)

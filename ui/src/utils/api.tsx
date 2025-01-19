@@ -161,21 +161,21 @@ export const fetchUpdateToolsSort = async (updates: { id: string; sort: number }
 
 // 分类管理
 export const fetchAddCateLog = async (data: { name: string }) => {
-  return handleRequest('/api/categories', {
+  return handleRequest('/api/catelog', {
     method: 'POST',
     body: JSON.stringify(data)
   });
 };
 
 export const fetchUpdateCateLog = async (id: string, data: { name: string }) => {
-  return handleRequest(`/api/categories/${id}`, {
+  return handleRequest(`/api/catelog/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data)
   });
 };
 
 export const fetchDeleteCatelog = async (id: string) => {
-  return handleRequest(`/api/categories/${id}`, {
+  return handleRequest(`/api/catelog/${id}`, {
     method: 'DELETE'
   });
 };
@@ -222,12 +222,12 @@ export const login = async (username: string, password: string): Promise<LoginRe
   try {
     const data = await handleRequest('/api/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ name: username, password }),
     });
 
     return data;
   } catch (error) {
-    console.error('Login failed:', error);
+    console.error('Login failed:', '登录失败');
     return {
       success: false,
       message: error.message || '登录失败'
