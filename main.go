@@ -15,6 +15,7 @@ import (
 
     "github.com/gin-contrib/gzip"
     "github.com/gin-gonic/gin"
+    "github.com/gin-contrib/cors" // 导入 cors 包
 )
 
 const INDEX = "index.html"
