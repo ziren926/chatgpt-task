@@ -190,34 +190,34 @@ export const fetchUpdateToolsSort = async (updates: { id: string; sort: number }
 
 // 分类管理
 export const fetchAddCateLog = async (data: { name: string }) => {
-  return handleRequest('/api/catelog', {
+  return handleRequest('/api/admin/catelog', {
     method: 'POST',
     body: JSON.stringify(data)
   });
 };
 
 export const fetchUpdateCateLog = async (id: string, data: { name: string }) => {
-  return handleRequest(`/api/catelog/${id}`, {
+  return handleRequest(`/api/admin/catelog/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data)
   });
 };
 
 export const fetchDeleteCatelog = async (id: string) => {
-  return handleRequest(`/api/catelog/${id}`, {
+  return handleRequest(`/api/admin/catelog/${id}`, {
     method: 'DELETE'
   });
 };
 
 // API Token 管理
 export const fetchAddApiToken = async () => {
-  return handleRequest('/api/tokens', {
+  return handleRequest('/api/admin/tokens', {
     method: 'POST'
   });
 };
 
 export const fetchDeleteApiToken = async (id: string) => {
-  return handleRequest(`/api/tokens/${id}`, {
+  return handleRequest(`/api/admin/tokens/${id}`, {
     method: 'DELETE'
   });
 };
@@ -228,7 +228,7 @@ export const fetchUpdateUser = async (data: {
   password?: string;
   oldPassword?: string;
 }) => {
-  return handleRequest('/api/user', {
+  return handleRequest('/api/admin/user', {
     method: 'PUT',
     body: JSON.stringify(data)
   });
@@ -240,7 +240,7 @@ export const fetchUpdateSetting = async (data: {
   title?: string;
   govRecord?: string;
 }) => {
-  return handleRequest('/api/settings', {
+  return handleRequest('/api/admin/settings', {
     method: 'PUT',
     body: JSON.stringify(data)
   });
