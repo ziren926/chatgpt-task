@@ -1,4 +1,3 @@
-// src/utils/api.ts
 import { message } from 'antd';
 
 // Types
@@ -45,8 +44,8 @@ export interface ApiResponse {
 }
 
 // Constants
-const BASE_URL = process.env.REACT_APP_API_URL || '';
-const TOKEN_KEY = '_token'; // 修改为与 Login 页面一致的 token key
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:6412';
+const TOKEN_KEY = '_token';
 
 // Error Messages
 const ERROR_MESSAGES = {
@@ -115,7 +114,7 @@ export const FetchList = async (): Promise<ApiResponse> => {
 };
 
 export const fetchAdminData = async () => {
-  return handleRequest('/api/admin/data');
+  return handleRequest('/api/admin/all'); // 确保路径正确
 };
 
 // 工具管理
@@ -224,6 +223,10 @@ export const login = async (username: string, password: string): Promise<LoginRe
       method: 'POST',
       body: JSON.stringify({ name: username, password }),
     });
+
+    if (data.success && data.data?.token) {
+      localStorage.setItem(TOKEN_KEY, data.data.token);
+    }
 
     return data;
   } catch (error) {
