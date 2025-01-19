@@ -59,12 +59,26 @@ const ERROR_MESSAGES = {
 // Helper Functions
 const getToken = () => localStorage.getItem(TOKEN_KEY);
 
+let isRedirecting = false;
+
+const handleTokenExpired = () => {
+  if (!isRedirecting) {
+    isRedirecting = true;
+    localStorage.removeItem(TOKEN_KEY);
+    message.error(ERROR_MESSAGES.LOGIN_EXPIRED);
+    setTimeout(() => {
+      window.location.href = '/login';
+      isRedirecting = false;
+    }, 1500);
+  }
+};
+
 // 核心请求处理函数
 const handleRequest = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem(TOKEN_KEY);
 
-  // 只对非登录请求检查token
-  if (!token && !url.includes('/api/login')) {
+  // 对于非登录和token检查请求，验证token
+  if (!token && !url.includes('/api/login') && !url.includes('/api/check-token')) {
     message.error(ERROR_MESSAGES.NO_TOKEN);
     window.location.href = '/login';
     return null;
@@ -88,29 +102,28 @@ const handleRequest = async (url: string, options: RequestInit = {}) => {
       data = text ? JSON.parse(text) : {};
     } catch (e) {
       console.error('Response parsing error:', e);
-      data = { success: false, message: '服務器響應格式錯誤' };
+      throw new Error('服務器響應格式錯誤');
     }
 
-    // 处理错误响应
+    // 处理响应状态
     if (!response.ok) {
-      // 处理 401 未授权错误
-      if (response.status === 401 && !url.includes('/api/login')) {
-        localStorage.removeItem(TOKEN_KEY);
-        message.error(ERROR_MESSAGES.LOGIN_EXPIRED);
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
-        return null;
+      // 处理401未授权错误
+      if (response.status === 401) {
+        if (!url.includes('/api/login') && !url.includes('/api/check-token')) {
+          handleTokenExpired();
+          return null;
+        }
+        throw new Error(data.message || ERROR_MESSAGES.LOGIN_EXPIRED);
       }
-
-      // 其他错误
       throw new Error(data.message || ERROR_MESSAGES.REQUEST_FAILED);
     }
 
     return data;
   } catch (error) {
-    console.error('Request failed:', error);
-    message.error(error.message || ERROR_MESSAGES.REQUEST_FAILED);
+    if (!url.includes('/api/check-token')) {
+      console.error('Request failed:', error);
+      message.error(error.message || ERROR_MESSAGES.REQUEST_FAILED);
+    }
     return null;
   }
 };
@@ -131,22 +144,17 @@ export const FetchList = async (): Promise<ApiResponse> => {
       }))
     };
   } catch (error) {
-    console.error('Failed to fetch tools:', error);
     return { tools: [], catelogs: ["全部工具"] };
   }
 };
 
 // 管理员数据
 export const fetchAdminData = async () => {
-  try {
-    return await handleRequest('/api/admin/all');
-  } catch (error) {
-    console.error('Failed to fetch admin data:', error);
-    return null;
-  }
+  const data = await handleRequest('/api/admin/all');
+  return data;
 };
 
-// 工具管理
+// 工具管理相关函数
 export const fetchAddTool = async (data: Omit<Tool, 'id'>) => {
   const response = await handleRequest('/api/tools', {
     method: 'POST',
@@ -305,6 +313,7 @@ export const login = async (username: string, password: string): Promise<LoginRe
     const data = await response.json();
 
     if (data.success && data.data?.token) {
+      // 确保先清除旧token再设置新token
       localStorage.removeItem(TOKEN_KEY);
       localStorage.setItem(TOKEN_KEY, data.data.token);
       message.success('登錄成功');
@@ -313,7 +322,6 @@ export const login = async (username: string, password: string): Promise<LoginRe
 
     throw new Error(data.message || '登錄失敗');
   } catch (error) {
-    console.error('Login failed:', error);
     message.error(error.message || '登錄失敗');
     throw error;
   }
@@ -327,8 +335,10 @@ export const logout = () => {
   }, 1000);
 };
 
+// Token 检查
 export const checkLogin = async () => {
-  if (!getToken()) {
+  const token = getToken();
+  if (!token) {
     return false;
   }
 
