@@ -74,33 +74,54 @@ const handleError = (error: any) => {
 const handleRequest = async (url: string, options: RequestInit = {}) => {
   try {
     const token = localStorage.getItem(TOKEN_KEY);
+    // 对于非登录请求，如果没有token直接跳转到登录页
+    if (!token && !url.includes('/api/login')) {
+      message.error('請先登錄');
+      window.location.href = '/login';
+      throw new Error('未登錄');
+    }
+
     const headers = new Headers({
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` })
     });
 
-    // 移除 credentials: 'include'，因为我们使用 Bearer token
     const response = await fetch(`${BASE_URL}${url}`, {
       ...options,
-      headers: headers
+      headers
     });
+
+    // 先尝试解析返回数据
+    let data;
+    try {
+      const text = await response.text();
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      console.error('Response parsing error:', e);
+      data = {};
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
-        // 只对非登录请求清除 token
+        // 对于401错误，如果不是登录请求，才清除token并跳转
         if (!url.includes('/api/login')) {
+          message.error('登錄已過期，請重新登錄');
           localStorage.removeItem(TOKEN_KEY);
-          window.location.href = '/login';
+          // 使用延时跳转，确保用户能看到提示信息
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
         }
-        throw new Error('未登錄或登錄已過期');
+        throw new Error(data.message || '未登錄或登錄已過期');
       }
-      throw new Error(`請求失敗: ${response.statusText}`);
+      throw new Error(data.message || `請求失敗: ${response.statusText}`);
     }
 
-    const data = await response.json();
     return data;
   } catch (error) {
+    // 统一的错误处理
     console.error('API Error:', error);
+    message.error(error.message || ERROR_MESSAGES.REQUEST_FAILED);
     throw error;
   }
 };
@@ -124,28 +145,15 @@ export const FetchList = async (): Promise<ApiResponse> => {
 };
 
 export const fetchAdminData = async () => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) {
-    throw new Error('未登錄');
-  }
-
   try {
-    // 先验证token
-    const isValid = await checkLogin();
-    if (!isValid) {
-      throw new Error('Token无效');
-    }
-
     const data = await handleRequest('/api/admin/all');
     return data;
   } catch (error) {
     console.error('Failed to fetch admin data:', error);
-    if (error.message.includes('401')) {
-      logout();
-    }
     throw error;
   }
 };
+
 
 // 工具管理
 export const fetchAddTool = async (data: Omit<Tool, 'id'>) => {
@@ -190,11 +198,23 @@ export const fetchUpdateToolsSort = async (updates: { id: string; sort: number }
 
 // 分类管理
 export const fetchAddCateLog = async (data: { name: string }) => {
-  return handleRequest('/api/admin/catelog', {
-    method: 'POST',
-    body: JSON.stringify(data)
-  });
+  try {
+    const response = await handleRequest('/api/admin/catelog', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+
+    if (response) {
+      message.success('添加分類成功');
+    }
+    return response;
+  } catch (error) {
+    console.error('Add category failed:', error);
+    // 错误已经在handleRequest中处理
+    throw error;
+  }
 };
+
 
 export const fetchUpdateCateLog = async (id: string, data: { name: string }) => {
   return handleRequest(`/api/admin/catelog/${id}`, {
@@ -260,22 +280,19 @@ export const login = async (username: string, password: string): Promise<LoginRe
     const data = await response.json();
 
     if (data.success && data.data?.token) {
-      // 先清除旧token，再设置新token
+      // 确保先清除旧token
       localStorage.removeItem(TOKEN_KEY);
+      // 设置新token
       localStorage.setItem(TOKEN_KEY, data.data.token);
 
-      // 验证token是否正确存储
-      const storedToken = localStorage.getItem(TOKEN_KEY);
-      if (!storedToken) {
-        throw new Error('Token存储失败');
-      }
-
+      message.success('登錄成功');
       return data;
     }
 
     throw new Error(data.message || '登錄失敗');
   } catch (error) {
     console.error('Login failed:', error);
+    message.error(error.message || '登錄失敗');
     throw error;
   }
 };
@@ -283,21 +300,18 @@ export const login = async (username: string, password: string): Promise<LoginRe
 
 export const logout = () => {
   localStorage.removeItem(TOKEN_KEY);
-  window.location.href = '/login';
+  message.success('已登出');
+  setTimeout(() => {
+    window.location.href = '/login';
+  }, 1000);
 };
 
-export const checkLogin = async () => {
-  const token = getToken();
-  if (!token) return false;
 
+export const checkLogin = async () => {
   try {
-    await handleRequest('/api/check-token');
+    const response = await handleRequest('/api/check-token');
     return true;
   } catch (error) {
-    console.error('Token validation failed:', error);
-    if (error.message.includes('401')) {
-      logout();
-    }
     return false;
   }
 };
