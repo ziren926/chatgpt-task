@@ -92,7 +92,6 @@ func main() {
             admin.GET("/exportTools", handler.ExportToolsHandler)
             admin.POST("/importTools", handler.ImportToolsHandler)
             admin.PUT("/user", handler.UpdateUserHandler)
-            admin.GET("/all", handler.GetAdminAllDataHandler)
             admin.PUT("/setting", handler.UpdateSettingHandler)
             admin.POST("/tool", handler.AddToolHandler)
             admin.DELETE("/tool/:id", handler.DeleteToolHandler)

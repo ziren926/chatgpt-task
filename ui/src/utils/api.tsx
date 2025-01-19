@@ -73,26 +73,32 @@ const handleError = (error: any) => {
 // 通用请求处理函数
 const handleRequest = async (url: string, options: RequestInit = {}) => {
   try {
-    const token = getToken();
-    const headers = {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const headers = new Headers({
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    };
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    });
 
     const response = await fetch(`${BASE_URL}${url}`, {
       ...options,
-      headers,
+      headers: headers,
+      credentials: 'include' // 添加這行以支持跨域請求的認證信息
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (response.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/login';
+        throw new Error('未登錄或登錄已過期');
+      }
+      throw new Error(`請求失敗: ${response.statusText}`);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    return handleError(error);
+    console.error('API Error:', error);
+    throw error;
   }
 };
 
@@ -115,7 +121,20 @@ export const FetchList = async (): Promise<ApiResponse> => {
 };
 
 export const fetchAdminData = async () => {
-  return handleRequest('/api/admin/all'); // 确保路径正确
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    throw new Error('未登錄');
+  }
+
+  try {
+    const data = await handleRequest('/api/admin/all');
+    return data;
+  } catch (error) {
+    if (error.message.includes('401')) {
+      logout();
+    }
+    throw error;
+  }
 };
 
 // 工具管理
@@ -220,24 +239,28 @@ export const fetchUpdateSetting = async (data: {
 // 认证相关
 export const login = async (username: string, password: string): Promise<LoginResponse> => {
   try {
-    const data = await handleRequest('/api/login', {
+    const response = await fetch(`${BASE_URL}/api/login`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ name: username, password }),
     });
 
+    const data = await response.json();
+
     if (data.success && data.data?.token) {
       localStorage.setItem(TOKEN_KEY, data.data.token);
+      return data;
     }
 
-    return data;
+    throw new Error(data.message || '登錄失敗');
   } catch (error) {
-    console.error('Login failed:', '登录失败');
-    return {
-      success: false,
-      message: error.message || '登录失败'
-    };
+    console.error('Login failed:', error);
+    throw error;
   }
 };
+
 
 export const logout = () => {
   localStorage.removeItem(TOKEN_KEY);
